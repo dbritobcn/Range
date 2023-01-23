@@ -1,0 +1,13 @@
+import React from "react";
+import {Link} from "react-router-dom";
+import {CustomRange} from "../range/presentation/range";
+
+export const Exercise1 = () => {
+  return (
+    <>
+      <h1>Exercise 1</h1>
+      <CustomRange />
+      <Link to={'/exercise2'}>Exercise 2</Link>
+    </>
+  )
+}
