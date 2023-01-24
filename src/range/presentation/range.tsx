@@ -1,5 +1,7 @@
-import React, {Ref, useRef, useState} from "react";
+import React, {Ref, useEffect, useRef, useState} from "react";
 import './range.css';
+import {useGetRange} from "../hooks/useGetRange";
+import {RangeDto} from "../mappers/range.dto";
 
 interface RangeProps {
   min: number;
@@ -7,45 +9,53 @@ interface RangeProps {
   onChange: (range: { min: number; max: number }) => void;
 }
 
-export const CustomRange: React.FC<RangeProps> = (props: any) => {
-  const {min, max, onChange} = props;
-  const [range, setRange] = useState({min, max});
+export const CustomRange: React.FC<RangeProps> = ({min, max, onChange}) => {
+  const [range, setRange] = useState({min, max})
+  const [values, setValues] = useState({min, max});
   const [isDragging, setIsDragging] = useState(false);
   const [dragType, setDragType] = useState<"min" | "max" | null>(null);
+  const getRange: Promise<RangeDto> = useGetRange();
   const rangeLineRef = useRef<HTMLDivElement>(null);
   const minBulletRef = useRef<HTMLDivElement>(null);
   const maxBulletRef = useRef<HTMLDivElement>(null);
 
-  const setValues = (value: {min: number, max: number}): void => {
+  useEffect(() => {
+    getRange.then((response: RangeDto) => {
+      setRange(response);
+      parseValues(response);
+    });
+  }, []);
+
+  const parseValues = (value: {min: number, max: number}): void => {
     const roundedValue = { min: Math.round(value.min), max: Math.round(value.max) };
-    setRange(value);
-    onChange(roundedValue);
+    setValues(value);
+    onChange(value);
   }
 
   const roundValue = (value: number): number => Math.round(value);
 
   const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let newMin = parseInt(e.target.value);
-    if (newMin < min) {
-      newMin = min;
+    if (newMin < range.min) {
+      newMin = range.min;
     }
-    if (newMin >= range.max) {
-      newMin = range.max - 1;
+    if (newMin >= values.max) {
+      newMin = values.max - 1;
     }
-    setRange({...range, min: newMin});
-    onChange({min: newMin, max: range.max});
+    setValues({...values, min: newMin});
+    onChange({min: newMin, max: values.max});
   };
 
   const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let newMax = parseInt(e.target.value);
-    if (newMax > max) {
-      newMax = max;
+    if (newMax > range.max) {
+      newMax = range.max;
     }
-    if (newMax <= range.min) {
-      newMax = range.min + 1;
+    if (newMax <= values.min) {
+      newMax = values.min + 1;
     }
-    setRange({...range, max: newMax});
-    onChange({min: range.min, max: newMax});
+    setValues({...values, max: newMax});
+    onChange({min: values.min, max: newMax});
   };
 
   const handleMouseMove = (event: React.MouseEvent) => {
@@ -54,13 +64,13 @@ export const CustomRange: React.FC<RangeProps> = (props: any) => {
     const position = (event.clientX - rangeLineRect.left) / rangeLineRect.width;
     if (position < 0 || position > 1) return;
     console.log("position: ", position);
-    const newValue = min + (position * (max - min));
-    if (dragType === "min" && newValue < range.max) {
-      setValues({ ...range, min: newValue });
+    const newValue = range.min + (position * (range.max - range.min));
+    if (dragType === "min" && newValue < values.max) {
+      parseValues({ ...values, min: newValue });
       // setRange({ ...range, min: newValue });
       // onChange({ min: newValue, max: range.max });
-    } else if (dragType === "max" && newValue > range.min) {
-      setValues({ ...range, max: newValue });
+    } else if (dragType === "max" && newValue > values.min) {
+      parseValues({ ...values, max: newValue });
       // setRange({ ...range, max: newValue });
       // onChange({ min: range.min, max: newValue });
     }
@@ -80,7 +90,7 @@ export const CustomRange: React.FC<RangeProps> = (props: any) => {
 
   const setBulletPosition = (value: number, ref: any): string => {
     const displacement = isNaN(ref?.current?.clientWidth) ? '.5em' : `${ref.current.clientWidth / 2}px`;
-    return `calc(${((value - min) / (max - min)) * 100}% - ${displacement})`;
+    return `calc(${((value - range.min) / (range.max - range.min)) * 100}% - ${displacement})`;
   }
 
   return (
@@ -88,7 +98,7 @@ export const CustomRange: React.FC<RangeProps> = (props: any) => {
       <input
         type="number"
         className="range__value"
-        value={roundValue(range.min)}
+        value={roundValue(values.min)}
         onChange={handleMinChange}
       />
       <div className="range__line"
@@ -99,19 +109,19 @@ export const CustomRange: React.FC<RangeProps> = (props: any) => {
           className="range__bullet"
           ref={minBulletRef}
           onMouseDown={(e) =>handleMouseDown(e, 'min')}
-          style={{left: setBulletPosition(range.min, minBulletRef)}}
+          style={{left: setBulletPosition(values.min, minBulletRef)}}
         ></div>
         <div
           className="range__bullet"
           ref={maxBulletRef}
           onMouseDown={(e) =>handleMouseDown(e, 'max')}
-          style={{left: setBulletPosition(range.max, maxBulletRef)}}
+          style={{left: setBulletPosition(values.max, maxBulletRef)}}
         ></div>
       </div>
       <input
         type="number"
         className="range__value"
-        value={roundValue(range.max)}
+        value={roundValue(values.max)}
         onChange={handleMaxChange}
       />
     </div>
