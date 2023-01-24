@@ -6,7 +6,9 @@ export const Exercise1 = () => {
   return (
     <>
       <h1>Exercise 1</h1>
-      <CustomRange />
+      <div className="exercise-container">
+        <CustomRange  min={3} max={6} onChange={(e) => console.info('Value', e)} />
+      </div>
       <Link to={'/exercise2'}>Exercise 2</Link>
     </>
   )
