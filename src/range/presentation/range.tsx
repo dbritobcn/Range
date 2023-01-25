@@ -1,17 +1,22 @@
-import React, {Ref, useEffect, useRef, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import './range.css';
 import {useGetRange} from "../hooks/useGetRange";
 import {RangeDto} from "../mappers/range.dto";
+import {LoadingSpinner} from "../../shared/components/loading-spinner/loading-spinner";
+
+export enum RangeType {
+  'REGULAR', 'FIXED'
+}
 
 interface RangeProps {
-  min: number;
-  max: number;
+  type?: RangeType,
   onChange: (range: { min: number; max: number }) => void;
 }
 
-export const CustomRange: React.FC<RangeProps> = ({min, max, onChange}) => {
-  const [range, setRange] = useState({min, max})
-  const [values, setValues] = useState({min, max});
+export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.REGULAR}) => {
+  const [loading, setLoading] = useState(true);
+  const [range, setRange] = useState({min: 1, max: 10});
+  const [values, setValues] = useState({min: 1, max: 10});
   const [isDragging, setIsDragging] = useState(false);
   const [dragType, setDragType] = useState<"min" | "max" | null>(null);
   const getRange: Promise<RangeDto> = useGetRange();
@@ -23,11 +28,12 @@ export const CustomRange: React.FC<RangeProps> = ({min, max, onChange}) => {
     getRange.then((response: RangeDto) => {
       setRange(response);
       parseValues(response);
+      setLoading(false);
     });
   }, []);
 
-  const parseValues = (value: {min: number, max: number}): void => {
-    const roundedValue = { min: Math.round(value.min), max: Math.round(value.max) };
+  const parseValues = (value: { min: number, max: number }): void => {
+    const roundedValue = {min: Math.round(value.min), max: Math.round(value.max)};
     setValues(value);
     onChange(value);
   }
@@ -66,11 +72,11 @@ export const CustomRange: React.FC<RangeProps> = ({min, max, onChange}) => {
     console.log("position: ", position);
     const newValue = range.min + (position * (range.max - range.min));
     if (dragType === "min" && newValue < values.max) {
-      parseValues({ ...values, min: newValue });
+      parseValues({...values, min: newValue});
       // setRange({ ...range, min: newValue });
       // onChange({ min: newValue, max: range.max });
     } else if (dragType === "max" && newValue > values.min) {
-      parseValues({ ...values, max: newValue });
+      parseValues({...values, max: newValue});
       // setRange({ ...range, max: newValue });
       // onChange({ min: range.min, max: newValue });
     }
@@ -94,36 +100,43 @@ export const CustomRange: React.FC<RangeProps> = ({min, max, onChange}) => {
   }
 
   return (
-    <div className="range__container">
-      <input
-        type="number"
-        className="range__value"
-        value={roundValue(values.min)}
-        onChange={handleMinChange}
-      />
-      <div className="range__line"
-           ref={rangeLineRef}
-           onMouseMove={handleMouseMove}
-           onMouseUp={handleMouseUp}>
-        <div
-          className="range__bullet"
-          ref={minBulletRef}
-          onMouseDown={(e) =>handleMouseDown(e, 'min')}
-          style={{left: setBulletPosition(values.min, minBulletRef)}}
-        ></div>
-        <div
-          className="range__bullet"
-          ref={maxBulletRef}
-          onMouseDown={(e) =>handleMouseDown(e, 'max')}
-          style={{left: setBulletPosition(values.max, maxBulletRef)}}
-        ></div>
-      </div>
-      <input
-        type="number"
-        className="range__value"
-        value={roundValue(values.max)}
-        onChange={handleMaxChange}
-      />
-    </div>
+    <>
+      {loading && <LoadingSpinner/>}
+      {!loading && (
+        <>
+          <div className="range__container">
+            <input
+              type="number"
+              className="range__value"
+              value={roundValue(values.min)}
+              onChange={handleMinChange}
+            />
+            <div className="range__line"
+                 ref={rangeLineRef}
+                 onMouseMove={handleMouseMove}
+                 onMouseUp={handleMouseUp}>
+              <div
+                className="range__bullet"
+                ref={minBulletRef}
+                onMouseDown={(e) => handleMouseDown(e, 'min')}
+                style={{left: setBulletPosition(values.min, minBulletRef)}}
+              ></div>
+              <div
+                className="range__bullet"
+                ref={maxBulletRef}
+                onMouseDown={(e) => handleMouseDown(e, 'max')}
+                style={{left: setBulletPosition(values.max, maxBulletRef)}}
+              ></div>
+            </div>
+            <input
+              type="number"
+              className="range__value"
+              value={roundValue(values.max)}
+              onChange={handleMaxChange}
+            />
+          </div>
+        </>
+      )}
+    </>
   )
 }
