@@ -3,6 +3,7 @@ import {setupServer} from 'msw/node';
 import {rest} from "msw";
 import 'isomorphic-fetch';
 import {RangeDto} from "../mappers/range.dto";
+import {RangeType} from "../presentation/range";
 
 const apiUrl = `${process.env.REACT_APP_API_URL}`;
 const facade = new RangeHttpFacade();
@@ -24,7 +25,7 @@ afterAll(() => server.close());
 describe('Range HTTP Facade', () => {
   describe('getRange', () => {
     it('should return a range successfully', async () => {
-      const range = await facade.getRange();
+      const range = await facade.getRange(RangeType.REGULAR);
       expect(range).toBeInstanceOf(RangeDto);
       expect(range).toMatchSnapshot();
       expect(range).toEqual({min: 1, max: 100});
@@ -41,7 +42,7 @@ describe('Range HTTP Facade', () => {
           )
         }),
       );
-      await expect(() => facade.getRange()).rejects.toThrow();
+      await expect(() => facade.getRange(RangeType.REGULAR)).rejects.toThrow();
     });
   });
 });

@@ -5,7 +5,8 @@ import {RangeDto} from "../mappers/range.dto";
 import {LoadingSpinner} from "../../shared/components/loading-spinner/loading-spinner";
 
 export enum RangeType {
-  'REGULAR', 'FIXED'
+  'REGULAR' = 'regular',
+  'FIXED' = 'fixed'
 }
 
 interface RangeProps {
@@ -14,25 +15,25 @@ interface RangeProps {
 }
 
 export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.REGULAR}) => {
-  const [loading, setLoading] = useState(true);
-  const [range, setRange] = useState({min: 1, max: 10});
-  const [values, setValues] = useState({min: 1, max: 10});
-  const [isDragging, setIsDragging] = useState(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [range, setRange] = useState<{[key: string]: number}>({min: 1, max: 10});
+  const [values, setValues] = useState<RangeDto>({min: 1, max: 10, data: []});
+  const [isDragging, setIsDragging] = useState<boolean>(false);
   const [dragType, setDragType] = useState<"min" | "max" | null>(null);
-  const getRange: Promise<RangeDto> = useGetRange();
+  const getRange: Promise<RangeDto> = useGetRange(type);
   const rangeLineRef = useRef<HTMLDivElement>(null);
   const minBulletRef = useRef<HTMLDivElement>(null);
   const maxBulletRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     getRange.then((response: RangeDto) => {
-      setRange(response);
+      setRange({min: response.min, max: response.max});
       parseValues(response);
       setLoading(false);
     });
   }, []);
 
-  const parseValues = (value: { min: number, max: number }): void => {
+  const parseValues = (value: { min: number, max: number, data: number[] }): void => {
     const roundedValue = {min: Math.round(value.min), max: Math.round(value.max)};
     setValues(value);
     onChange(value);
@@ -49,7 +50,6 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
       newMin = values.max - 1;
     }
     setValues({...values, min: newMin});
-    onChange({min: newMin, max: values.max});
   };
 
   const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,7 +61,6 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
       newMax = values.min + 1;
     }
     setValues({...values, max: newMax});
-    onChange({min: values.min, max: newMax});
   };
 
   const handleMouseMove = (event: React.MouseEvent) => {
@@ -69,16 +68,11 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
     const rangeLineRect = rangeLineRef.current!.getBoundingClientRect();
     const position = (event.clientX - rangeLineRect.left) / rangeLineRect.width;
     if (position < 0 || position > 1) return;
-    console.log("position: ", position);
     const newValue = range.min + (position * (range.max - range.min));
     if (dragType === "min" && newValue < values.max) {
       parseValues({...values, min: newValue});
-      // setRange({ ...range, min: newValue });
-      // onChange({ min: newValue, max: range.max });
     } else if (dragType === "max" && newValue > values.min) {
       parseValues({...values, max: newValue});
-      // setRange({ ...range, max: newValue });
-      // onChange({ min: range.min, max: newValue });
     }
   };
 
