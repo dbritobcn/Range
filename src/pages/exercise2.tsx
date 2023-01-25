@@ -8,7 +8,9 @@ export const Exercise2 = () => {
       <h1>Exercise 2</h1>
       <div className="exercise-container">
         <CustomRange type={RangeType.FIXED}
-                     onChange={(e) => console.info('Value', e)} />
+                     onChange={(e) => {
+                       console.info('Value', e)
+                     }} />
       </div>
       <Link to={'/exercise1'}>Exercise 1</Link>
     </>

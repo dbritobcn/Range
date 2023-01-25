@@ -2,6 +2,11 @@
   --text-color: #333;
 }
 
+body {
+  font-family: 'Roboto Mono', monospace;
+  font-family: 'Source Sans Pro', sans-serif;
+}
+
 .exercise-container {
   align-items: center;
   display: flex;

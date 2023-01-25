@@ -3,7 +3,7 @@ import {RangeDtoException} from "./exception";
 export class RangeDto {
   private constructor(public readonly min: number,
                       public readonly max: number,
-                      public readonly data: number[]) {
+                      public readonly data?: number[]) {
   }
 
   static fromServer(props: any): RangeDto {
@@ -13,7 +13,7 @@ export class RangeDto {
     const result = {
       min: orderedData[0],
       max: orderedData[orderedData.length - 1],
-      data: orderedData.slice(1, -1)
+      data: orderedData
     };
     return new RangeDto(result.min, result.max, result.data);
   }
