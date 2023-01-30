@@ -9,6 +9,11 @@ export enum RangeType {
   'FIXED' = 'fixed'
 }
 
+export enum InputType {
+  'MIN' = 'min',
+  'MAX' = 'max'
+}
+
 interface RangeProps {
   type?: RangeType,
   onChange: (range: { min: number; max: number }) => void;
@@ -26,12 +31,15 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
   const [range, setRange] = useState<RangeDto>({min: 1, max: 10, data: []});
   const [loading, setLoading] = useState<boolean>(true);
   const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [dragType, setDragType] = useState<"min" | "max" | null>(null);
+  const [dragType, setDragType] = useState<InputType.MIN | InputType.MAX | null>(null);
+  const [editMode, setEditMode] = useState<InputType.MIN | InputType.MAX | null>(null);
 
   const getRange: Promise<RangeDto> = useGetRange(type);
   const rangeLineRef = useRef<HTMLDivElement>(null);
   const minBulletRef = useRef<HTMLDivElement>(null);
   const maxBulletRef = useRef<HTMLDivElement>(null);
+  const minInputRef = useRef<HTMLInputElement>(null);
+  const maxInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     getRange.then((response: RangeDto) => {
@@ -43,7 +51,6 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
     });
     window.addEventListener('mouseup', handleMouseUp);
     return () => {
-      console.log("DESTROY");
       window.removeEventListener('mouseup', handleMouseUp);
     };
   }, []);
@@ -56,7 +63,6 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
 
   const parseValues = (value: StateProps): void => {
     setState(value);
-    setTempValues({min: 0, max: 0});
     let newValues: StateProps;
     if (type === RangeType.FIXED) {
       newValues = range.data!.reduce((acc: StateProps, currentRange: number): StateProps => {
@@ -73,61 +79,81 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
     }
   }
 
+  const updateInput = (value: number, input: InputType.MIN | InputType.MAX) => {
+    if (isNaN(value)) {
+      escape();
+      return;
+    }
+    switch(input) {
+      case InputType.MIN:
+        if (value < range.min) {
+          value = range.min;
+        }
+        if (value >= values.max) {
+          value = values.max - 1;
+        }
+        parseValues({...values, min: value});
+        onChange({...values, min: value});
+        break;
+      case InputType.MAX:
+        if (value > range.max) {
+          value = range.max;
+        }
+        if (value <= values.min) {
+          value = values.min + 1;
+        }
+        parseValues({...values, max: value});
+        onChange({...values, max: value});
+        break;
+    }
+    cleanTemps();
+  }
+
   const cleanTemps = () => {
     setTempValues({
       min: null,
       max: null
     })
+  };
+
+  const escape = () => {
+    setValues({
+      min: tempValues.min || values.min,
+      max: tempValues.max || values.max
+    });
+    cleanTemps();
+    blurInputs();
   }
 
-  const handleKeyboard = (key: string, input?: string) => {
-    switch(key) {
+  const blurInputs = () => {
+    minInputRef.current!.blur();
+    maxInputRef.current!.blur();
+    setEditMode(null);
+  };
+
+  const handleKeyboard = (event: React.KeyboardEvent<HTMLInputElement>, input: InputType.MIN | InputType.MAX) => {
+    switch(event.key) {
       case 'Enter':
-        parseValues({
-          min: values.min,
-          max: values.max
-        });
-        onChange({
-          min: values.min,
-          max: values.max
-        });
-        cleanTemps();
+        updateInput(input === InputType.MIN ? values.min : values.max, input);
         break;
       case 'Escape':
-        setValues({
-          min: tempValues.min || values.min,
-          max: tempValues.max || values.min
-        });
-        cleanTemps();
+        escape();
+        break;
     }
   }
 
   const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let newMin = parseInt(e.target.value);
-    if (newMin < range.min) {
-      newMin = range.min;
-    }
-    if (newMin >= values.max) {
-      newMin = values.max - 1;
-    }
-    setValues({...values, min: newMin});
     if (!tempValues.min) {
       setTempValues({...values, min: values.min});
     }
+    setValues({...values, min: parseInt(e.target.value)});
   };
 
   const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let newMax = parseInt(e.target.value);
-    if (newMax > range.max) {
-      newMax = range.max;
-    }
-    if (newMax <= values.min) {
-      newMax = values.min + 1;
-    }
-    setValues({...values, max: newMax});
     if (!tempValues.max) {
       setTempValues({...values, max: values.max});
     }
+    setValues({...values, max: parseInt(e.target.value)});
   };
 
   const handleMouseMove = (event: React.MouseEvent) => {
@@ -136,9 +162,9 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
     const position = (event.clientX - rangeLineRect.left) / rangeLineRect.width;
     if (position < 0 || position > 1) return;
     const newValue = range.min + (position * (range.max - range.min));
-    if (dragType === "min" && newValue < values.max - 1) {
+    if (dragType === InputType.MIN && newValue < values.max - 1) {
       parseValues({...values, min: newValue});
-    } else if (dragType === "max" && newValue > values.min + 1) {
+    } else if (dragType === InputType.MAX && newValue > values.min + 1) {
       parseValues({...values, max: newValue});
     }
   };
@@ -149,7 +175,7 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
     setDragType(null);
   }
 
-  const handleMouseDown = (event: React.MouseEvent, type: "min" | "max") => {
+  const handleMouseDown = (event: React.MouseEvent, type: InputType.MIN | InputType.MAX) => {
     event.preventDefault();
     setIsDragging(true);
     setDragType(type);
@@ -170,9 +196,12 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
               <input
                 type="number"
                 className="range__value"
+                ref={minInputRef}
                 value={values.min}
                 onChange={handleMinChange}
-                onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => handleKeyboard(event.key, 'min')}
+                onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => handleKeyboard(event, InputType.MIN)}
+                onFocus={() => setEditMode(InputType.MIN)}
+                onBlur={() => escape()}
                 data-testid="minValueInput"
               />
             )}
@@ -186,14 +215,14 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
               <div
                 className="range__bullet"
                 ref={minBulletRef}
-                onMouseDown={(e) => handleMouseDown(e, 'min')}
+                onMouseDown={(e) => handleMouseDown(e, InputType.MIN)}
                 style={{left: setBulletPosition(state.min, minBulletRef)}}
                 data-testid="min-bullet"
               ></div>
               <div
                 className="range__bullet"
                 ref={maxBulletRef}
-                onMouseDown={(e) => handleMouseDown(e, 'max')}
+                onMouseDown={(e) => handleMouseDown(e, InputType.MAX)}
                 style={{left: setBulletPosition(state.max, maxBulletRef)}}
                 data-testid="max-bullet"
               ></div>
@@ -202,9 +231,12 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
               <input
                 type="number"
                 className="range__value"
+                ref={maxInputRef}
                 value={values.max}
                 onChange={handleMaxChange}
-                onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => handleKeyboard(event.key, 'max')}
+                onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => handleKeyboard(event, InputType.MAX)}
+                onFocus={() => setEditMode(InputType.MAX)}
+                onBlur={() => escape()}
                 data-testid="maxValueInput"
               />
             )}
