@@ -106,5 +106,8 @@
     /* Skip type checking all .d.ts files. */
     "jsx": "react"
   },
-  "include": ["./src/**/*"]
+  "include": [
+    "./src/**/*",
+    "./jest-setup.ts"
+  ]
 }

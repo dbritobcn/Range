@@ -7,11 +7,11 @@
 
 .range__value {
   border-color: transparent;
+  cursor: pointer;
   font-size: 16px;
   margin: auto 10px;
-  outline: none;
   padding: 0;
-  width: 100px;
+  width: 50px;
 }
 .range__value::-webkit-outer-spin-button,
 .range__value::-webkit-inner-spin-button {
@@ -27,11 +27,20 @@
 }
 
 .range__line {
-  background-color: var(--text-color);
-  height: 5px;
+  height: 30px;
   margin: auto 10px;
   position: relative;
   width: 100%;
+}
+.range__line::before {
+  background-color: var(--text-color);
+  content: '';
+  display: block;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(50% - 2px);
+  height: 5px;
 }
 
 .range__bullet {
@@ -39,7 +48,7 @@
   border-radius: 50%;
   height: 15px;
   position: absolute;
-  top: -5px;
+  top: calc(50% - 7px);
   transition: all .1s ease;
   width: 15px;
 }
@@ -54,7 +63,7 @@
 
 .range__bullet:hover,
 .range__bullet:active {
-  height: 1.1em;
-  top: -.4em;
-  width: 1.1em;
+  height: 20px;
+  top: calc(50% - 10px);
+  width: 20px;
 }

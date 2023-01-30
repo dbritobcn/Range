@@ -6,10 +6,6 @@ import {RangeType} from "../presentation/range";
 const http = new RangeHttpFacade();
 
 export const useGetRange = (type: RangeType = RangeType.REGULAR): Promise<RangeDto> => {
-  const [state] = useState(async () => {
-    const value: RangeDto = await http.getRange(type);
-    return value;
-  });
-
+  const [state] = useState(async () => await http.getRange(type));
   return state;
 }

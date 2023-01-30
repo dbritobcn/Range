@@ -22,6 +22,7 @@ interface StateProps {
 export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.REGULAR}) => {
   const [state, setState] = useState<StateProps>({min: 1, max: 10});
   const [values, setValues] = useState<StateProps>({min: 1, max: 10});
+  const [tempValues, setTempValues] = useState<{[key: string]: number | null}>({});
   const [range, setRange] = useState<RangeDto>({min: 1, max: 10, data: []});
   const [loading, setLoading] = useState<boolean>(true);
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -38,26 +39,66 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
       setValues({min: response.min, max: response.max});
       setState({min: response.min, max: response.max});
       setLoading(false);
+      onChange({min: response.min, max: response.max});
     });
-    document.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      console.log("DESTROY");
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
   }, []);
+
+  useEffect(() => {
+    if (!isDragging) {
+      onChange(values);
+    }
+  }, [isDragging]);
 
   const parseValues = (value: StateProps): void => {
     setState(value);
+    setTempValues({min: 0, max: 0});
     let newValues: StateProps;
     if (type === RangeType.FIXED) {
       newValues = range.data!.reduce((acc: StateProps, currentRange: number): StateProps => {
         return {
           min: (value.min >= currentRange) ? currentRange : acc.min,
-          max: (value.max >= currentRange) ? currentRange : acc.max
+          max: (Math.floor(value.max) >= Math.floor(currentRange)) ? currentRange : acc.max
         }
       }, {min: values.min, max: values.max});
     } else {
       newValues = {min: Math.round(value.min), max: Math.round(value.max)};
     }
     if (newValues.min !== values.min || newValues.max !== values.max) {
-      onChange(newValues);
       setValues(newValues);
+    }
+  }
+
+  const cleanTemps = () => {
+    setTempValues({
+      min: null,
+      max: null
+    })
+  }
+
+  const handleKeyboard = (key: string, input?: string) => {
+    switch(key) {
+      case 'Enter':
+        parseValues({
+          min: values.min,
+          max: values.max
+        });
+        onChange({
+          min: values.min,
+          max: values.max
+        });
+        cleanTemps();
+        break;
+      case 'Escape':
+        setValues({
+          min: tempValues.min || values.min,
+          max: tempValues.max || values.min
+        });
+        cleanTemps();
     }
   }
 
@@ -69,7 +110,10 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
     if (newMin >= values.max) {
       newMin = values.max - 1;
     }
-    parseValues({...values, min: newMin});
+    setValues({...values, min: newMin});
+    if (!tempValues.min) {
+      setTempValues({...values, min: values.min});
+    }
   };
 
   const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,7 +124,10 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
     if (newMax <= values.min) {
       newMax = values.min + 1;
     }
-    parseValues({...values, max: newMax});
+    setValues({...values, max: newMax});
+    if (!tempValues.max) {
+      setTempValues({...values, max: values.max});
+    }
   };
 
   const handleMouseMove = (event: React.MouseEvent) => {
@@ -89,9 +136,9 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
     const position = (event.clientX - rangeLineRect.left) / rangeLineRect.width;
     if (position < 0 || position > 1) return;
     const newValue = range.min + (position * (range.max - range.min));
-    if (dragType === "min" && newValue < values.max) {
+    if (dragType === "min" && newValue < values.max - 1) {
       parseValues({...values, min: newValue});
-    } else if (dragType === "max" && newValue > values.min) {
+    } else if (dragType === "max" && newValue > values.min + 1) {
       parseValues({...values, max: newValue});
     }
   };
@@ -114,7 +161,7 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
   }
 
   return (
-    <>
+    <div data-testid="range">
       {loading && <LoadingSpinner/>}
       {!loading && (
         <>
@@ -125,10 +172,13 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
                 className="range__value"
                 value={values.min}
                 onChange={handleMinChange}
+                onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => handleKeyboard(event.key, 'min')}
+                data-testid="minValueInput"
               />
             )}
             {type !== RangeType.REGULAR && (
-              <span className="range__value">{values.min}</span>
+              <span className="range__value"
+                    data-testid="minValueLabel">{values.min}</span>
             )}
             <div className="range__line"
                  ref={rangeLineRef}
@@ -138,12 +188,14 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
                 ref={minBulletRef}
                 onMouseDown={(e) => handleMouseDown(e, 'min')}
                 style={{left: setBulletPosition(state.min, minBulletRef)}}
+                data-testid="min-bullet"
               ></div>
               <div
                 className="range__bullet"
                 ref={maxBulletRef}
                 onMouseDown={(e) => handleMouseDown(e, 'max')}
                 style={{left: setBulletPosition(state.max, maxBulletRef)}}
+                data-testid="max-bullet"
               ></div>
             </div>
             {type === RangeType.REGULAR && (
@@ -152,14 +204,17 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
                 className="range__value"
                 value={values.max}
                 onChange={handleMaxChange}
+                onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => handleKeyboard(event.key, 'max')}
+                data-testid="maxValueInput"
               />
             )}
             {type !== RangeType.REGULAR && (
-              <span className="range__value">{values.max}</span>
+              <span className="range__value"
+                    data-testid="maxValueLabel">{values.max}</span>
             )}
           </div>
         </>
       )}
-    </>
+    </div>
   )
 }

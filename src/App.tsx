@@ -7,11 +7,11 @@ import './App.css';
 export const App: React.FC = () => {
   const router = createBrowserRouter([
     {
-      path: '/exercise1',
+      path: 'exercise1',
       element: <Exercise1 />
     },
     {
-      path: '/exercise2',
+      path: 'exercise2',
       element: <Exercise2 />
     },
     {
