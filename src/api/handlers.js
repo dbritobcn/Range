@@ -7,13 +7,12 @@ export const handlers = [
       case RangeType.FIXED:
         return res(
           ctx.status(200),
-          ctx.json({data: [1.99, 5.99, 2.99, 30.99, 50.99, 70.99]})
+          ctx.json({rangeValues: [1.99, 5.99, 2.99, 30.99, 50.99, 70.99]})
         );
-        break;
       default:
         return res(
           ctx.status(200),
-          ctx.json({data: [1, 100]})
+          ctx.json({rangeValues: [1, 100]})
         );
     }
   })

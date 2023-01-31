@@ -3,19 +3,19 @@ import {RangeDtoException} from "./exception";
 export class RangeDto {
   private constructor(public readonly min: number,
                       public readonly max: number,
-                      public readonly data?: number[]) {
+                      public readonly values?: number[]) {
   }
 
   static fromServer(props: any): RangeDto {
-    const {data} = props;
-    RangeDto.validate(data);
-    const orderedData = props.data.sort((a: number, b: number) => a - b);
+    const {rangeValues} = props;
+    RangeDto.validate(rangeValues);
+    const orderedValues = props.rangeValues.sort((a: number, b: number) => a - b);
     const result = {
-      min: orderedData[0],
-      max: orderedData[orderedData.length - 1],
-      data: orderedData
+      min: orderedValues[0],
+      max: orderedValues[orderedValues.length - 1],
+      values: orderedValues
     };
-    return new RangeDto(result.min, result.max, result.data);
+    return new RangeDto(result.min, result.max, result.values);
   }
 
   static validate(data: number[]): void {

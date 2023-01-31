@@ -3,6 +3,7 @@ import './range.css';
 import {useGetRange} from "../hooks/useGetRange";
 import {RangeDto} from "../mappers/range.dto";
 import {LoadingSpinner} from "../../shared/components/loading-spinner/loading-spinner";
+import {RangeService, StateProps} from "../service/range.service";
 
 export enum RangeType {
   'REGULAR' = 'regular',
@@ -19,16 +20,11 @@ interface RangeProps {
   onChange: (range: { min: number; max: number }) => void;
 }
 
-interface StateProps {
-  min: number,
-  max: number
-}
-
 export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.REGULAR}) => {
   const [state, setState] = useState<StateProps>({min: 1, max: 10});
   const [values, setValues] = useState<StateProps>({min: 1, max: 10});
   const [tempValues, setTempValues] = useState<{[key: string]: number | null}>({});
-  const [range, setRange] = useState<RangeDto>({min: 1, max: 10, data: []});
+  const [range, setRange] = useState<RangeDto>({min: 1, max: 10, values: []});
   const [loading, setLoading] = useState<boolean>(true);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [dragType, setDragType] = useState<InputType.MIN | InputType.MAX | null>(null);
@@ -59,20 +55,20 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
 
   useEffect(() => {
     if (!isDragging) {
+      if (dragType) {
+        updateInput(values[dragType], dragType);
+      }
       onChange(values);
+      setDragType(null);
     }
   }, [isDragging]);
 
   const parseValues = (value: StateProps): void => {
-    setState(value);
     let newValues: StateProps;
+    setState(value);
     if (type === RangeType.FIXED) {
-      newValues = range.data!.reduce((acc: StateProps, currentRange: number): StateProps => {
-        return {
-          min: (value.min >= currentRange) ? currentRange : acc.min,
-          max: (Math.floor(value.max) >= Math.floor(currentRange)) ? currentRange : acc.max
-        }
-      }, {min: values.min, max: values.max});
+      if (!range.values) return;
+      newValues = RangeService.setBulletsToStep(value, range.values);
     } else {
       newValues = {min: Math.round(value.min), max: Math.round(value.max)};
     }
@@ -158,7 +154,7 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
   const handleMouseMove = (event: any) => {
     if (!isDragging) return;
     let clientX: any;
-    if (event.nativeEvent instanceof TouchEvent) {
+    if (window.TouchEvent && (event.originalEvent instanceof TouchEvent || event.nativeEvent instanceof TouchEvent)) {
       clientX = event.touches[0].clientX;
     } else {
       clientX = event.clientX;
@@ -177,7 +173,6 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
   const handleMouseUp = (event: Event) => {
     event.preventDefault();
     setIsDragging(false);
-    setDragType(null);
   }
 
   const handleMouseDown = (event: any, type: InputType.MIN | InputType.MAX) => {
