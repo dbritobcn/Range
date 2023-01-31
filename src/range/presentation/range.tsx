@@ -50,8 +50,10 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
       onChange({min: response.min, max: response.max});
     });
     window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('touchend', handleMouseUp);
     return () => {
       window.removeEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchend', handleMouseUp);
     };
   }, []);
 
@@ -142,24 +144,27 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
     }
   }
 
-  const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!tempValues.min) {
-      setTempValues({...values, min: values.min});
-    }
-    setValues({...values, min: parseInt(e.target.value)});
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>, input: InputType) => {
+    setTempValues({
+      min: tempValues.min || values.min,
+      max: tempValues.max || values.max
+    });
+    setValues({
+      min: input === InputType.MIN ? parseInt(e.target.value) : values.min,
+      max: input === InputType.MAX ? parseInt(e.target.value) : values.max
+    });
   };
 
-  const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!tempValues.max) {
-      setTempValues({...values, max: values.max});
-    }
-    setValues({...values, max: parseInt(e.target.value)});
-  };
-
-  const handleMouseMove = (event: React.MouseEvent) => {
+  const handleMouseMove = (event: any) => {
     if (!isDragging) return;
+    let clientX: any;
+    if (event.nativeEvent instanceof TouchEvent) {
+      clientX = event.touches[0].clientX;
+    } else {
+      clientX = event.clientX;
+    }
     const rangeLineRect = rangeLineRef.current!.getBoundingClientRect();
-    const position = (event.clientX - rangeLineRect.left) / rangeLineRect.width;
+    const position = (clientX - rangeLineRect.left) / rangeLineRect.width;
     if (position < 0 || position > 1) return;
     const newValue = range.min + (position * (range.max - range.min));
     if (dragType === InputType.MIN && newValue < values.max - 1) {
@@ -175,7 +180,7 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
     setDragType(null);
   }
 
-  const handleMouseDown = (event: React.MouseEvent, type: InputType.MIN | InputType.MAX) => {
+  const handleMouseDown = (event: any, type: InputType.MIN | InputType.MAX) => {
     event.preventDefault();
     setIsDragging(true);
     setDragType(type);
@@ -187,7 +192,7 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
   }
 
   return (
-    <div data-testid="range">
+    <div className="range" data-testid="range">
       {loading && <LoadingSpinner/>}
       {!loading && (
         <>
@@ -198,7 +203,7 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
                 className="range__value"
                 ref={minInputRef}
                 value={values.min}
-                onChange={handleMinChange}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e, InputType.MIN)}
                 onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => handleKeyboard(event, InputType.MIN)}
                 onFocus={() => setEditMode(InputType.MIN)}
                 onBlur={() => escape()}
@@ -211,18 +216,21 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
             )}
             <div className="range__line"
                  ref={rangeLineRef}
-                 onMouseMove={handleMouseMove}>
+                 onMouseMove={handleMouseMove}
+                 onTouchMove={handleMouseMove}>
               <div
                 className="range__bullet"
                 ref={minBulletRef}
-                onMouseDown={(e) => handleMouseDown(e, InputType.MIN)}
+                onMouseDown={(e: React.MouseEvent) => handleMouseDown(e, InputType.MIN)}
+                onTouchStart={(e: React.TouchEvent) => handleMouseDown(e, InputType.MIN)}
                 style={{left: setBulletPosition(state.min, minBulletRef)}}
                 data-testid="min-bullet"
               ></div>
               <div
                 className="range__bullet"
                 ref={maxBulletRef}
-                onMouseDown={(e) => handleMouseDown(e, InputType.MAX)}
+                onMouseDown={(e: React.MouseEvent) => handleMouseDown(e, InputType.MAX)}
+                onTouchStart={(e: React.TouchEvent) => handleMouseDown(e, InputType.MAX)}
                 style={{left: setBulletPosition(state.max, maxBulletRef)}}
                 data-testid="max-bullet"
               ></div>
@@ -233,7 +241,7 @@ export const CustomRange: React.FC<RangeProps> = ({onChange, type = RangeType.RE
                 className="range__value"
                 ref={maxInputRef}
                 value={values.max}
-                onChange={handleMaxChange}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e, InputType.MAX)}
                 onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => handleKeyboard(event, InputType.MAX)}
                 onFocus={() => setEditMode(InputType.MAX)}
                 onBlur={() => escape()}
