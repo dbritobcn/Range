@@ -34,11 +34,11 @@ export const Exercise2 = () => {
             <tbody>
             <tr>
               <td>Min</td>
-              <td>{state.min}</td>
+              <td data-testid="minResult">{state.min}</td>
             </tr>
             <tr>
               <td>Max</td>
-              <td>{state.max}</td>
+              <td data-testid="maxResult">{state.max}</td>
             </tr>
             </tbody>
           </table>

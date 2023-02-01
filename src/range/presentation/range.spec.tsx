@@ -1,17 +1,16 @@
 import React from "react";
-import {queryByTestId, render} from '@testing-library/react';
+import {render} from '@testing-library/react';
 import {CustomRange} from "./range";
-import {RangeDto} from "../mappers/range.dto";
 import userEvent from "@testing-library/user-event";
+import {rangeFixedFixture, rangeRegularFixture} from "../../../fixtures/range.fixtures";
 
-const onChangeMock: jest.Mock = jest.fn();
-let rangeFixture: RangeDto;
+let onChangeMock: jest.Mock;
 let user: any;
 
 describe('CustomRange', () => {
   describe('Regular type', () => {
     beforeEach(() => {
-      rangeFixture = RangeDto.fromServer({rangeValues: [1, 10]});
+      onChangeMock = jest.fn()
       user = userEvent.setup()
     });
 
@@ -21,7 +20,7 @@ describe('CustomRange', () => {
     });
 
     it('should render correctly', () => {
-      const {container, queryByTestId} = render(<CustomRange data={rangeFixture} onChange={onChangeMock}/>);
+      const {container, queryByTestId} = render(<CustomRange data={rangeRegularFixture} onChange={onChangeMock}/>);
       expect(container).toMatchSnapshot();
       expect(queryByTestId('range')).toBeInTheDocument();
       expect(queryByTestId('minBullet')).toBeInTheDocument();
@@ -29,7 +28,7 @@ describe('CustomRange', () => {
     });
 
     it('should be a regular type range', () => {
-      const {container, queryByTestId} = render(<CustomRange data={rangeFixture} onChange={onChangeMock}/>);
+      const {container, queryByTestId} = render(<CustomRange data={rangeRegularFixture} onChange={onChangeMock}/>);
       expect(container).toMatchSnapshot();
       expect(queryByTestId('minValueLabel')).not.toBeInTheDocument();
       expect(queryByTestId('maxValueLabel')).not.toBeInTheDocument();
@@ -39,17 +38,22 @@ describe('CustomRange', () => {
     });
 
     it('should type a min value and return it', async () => {
-      const {container, queryByTestId} = render(<CustomRange data={rangeFixture} onChange={onChangeMock}/>);
+      const {queryByTestId} = render(<CustomRange data={rangeRegularFixture} onChange={onChangeMock}/>);
       await user.click(queryByTestId('minValueInput') as HTMLElement);
       await user.keyboard('[Backspace]');
       await user.keyboard('3');
       await user.keyboard('4');
       await user.keyboard('[Enter]');
       await expect(onChangeMock).toHaveBeenLastCalledWith({min: 9, max: 10});
+      await user.click(queryByTestId('minValueInput') as HTMLElement);
+      await user.keyboard('[Backspace]');
+      await user.keyboard('4');
+      await user.keyboard('[Enter]');
+      await expect(onChangeMock).toHaveBeenLastCalledWith({min: 4, max: 10});
     });
 
     it('should type a NaN value and cancel', async () => {
-      const {container, queryByTestId} = render(<CustomRange data={rangeFixture} onChange={onChangeMock}/>);
+      const {queryByTestId} = render(<CustomRange data={rangeRegularFixture} onChange={onChangeMock}/>);
       await user.click(queryByTestId('maxValueInput') as HTMLElement);
       await user.keyboard('[Backspace]');
       await user.keyboard('[Backspace]');
@@ -59,7 +63,7 @@ describe('CustomRange', () => {
     });
 
     it('should increase the min value through arrow keys and return it', async () => {
-      const {container, queryByTestId} = render(<CustomRange data={rangeFixture} onChange={onChangeMock}/>);
+      const {queryByTestId} = render(<CustomRange data={rangeRegularFixture} onChange={onChangeMock}/>);
       const minValueInput = queryByTestId('minValueInput') as HTMLElement;
       await user.click(minValueInput);
       expect(minValueInput).toHaveFocus();
@@ -81,7 +85,7 @@ describe('CustomRange', () => {
     });
 
     it('should increase the min value through arrow keys and cancel clicking somewhere else', async () => {
-      const {container, queryByTestId} = render(<CustomRange data={rangeFixture} onChange={onChangeMock}/>);
+      const {queryByTestId} = render(<CustomRange data={rangeRegularFixture} onChange={onChangeMock}/>);
       const minValueInput = queryByTestId('minValueInput') as HTMLElement;
       await user.click(minValueInput);
       expect(minValueInput).toHaveFocus();
@@ -92,7 +96,7 @@ describe('CustomRange', () => {
     });
 
     it('should type a value and cancel', async () => {
-      const {container, queryByTestId} = render(<CustomRange data={rangeFixture} onChange={onChangeMock}/>);
+      const {queryByTestId} = render(<CustomRange data={rangeRegularFixture} onChange={onChangeMock}/>);
       await user.click(queryByTestId('minValueInput') as HTMLElement);
       await user.keyboard('[ArrowUp]');
       await user.keyboard('4');
@@ -102,12 +106,8 @@ describe('CustomRange', () => {
   });
 
   describe('Fixed type', () => {
-    beforeEach(() => {
-      rangeFixture = RangeDto.fromServer({rangeValues: [1.99, 5.99, 2.99, 30.99, 50.99, 70.99]});
-    });
-
     it('should become a fixed type slider', () => {
-      const {queryByTestId} = render(<CustomRange data={rangeFixture} onChange={onChangeMock}/>);
+      const {queryByTestId} = render(<CustomRange data={rangeFixedFixture} onChange={onChangeMock}/>);
       expect(queryByTestId('minValueLabel')).toBeInTheDocument();
       expect(queryByTestId('maxValueLabel')).toBeInTheDocument();
       expect(queryByTestId('minValueInput')).not.toBeInTheDocument();

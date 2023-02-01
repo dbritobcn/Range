@@ -41,5 +41,5 @@ export class RangeService {
       }
     }
     return intervals;
-  };
+  }
 }

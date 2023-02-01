@@ -22,12 +22,9 @@ export const CustomRange: React.FC<RangeProps> = ({data, onChange}) => {
   const [state, setState] = useState<StateProps>({min: data.min, max: data.max});
   const [values, setValues] = useState<StateProps>({min: data.min, max: data.max});
   const [tempValues, setTempValues] = useState<{[key: string]: number | null}>({});
-  const [range, setRange] = useState<RangeDto>(data);
-  const [type, setType] = useState<RangeType>((data.values && data.values.length > 2) ? RangeType.FIXED : RangeType.REGULAR);
-  const [loading, setLoading] = useState<boolean>(true);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [dragType, setDragType] = useState<InputType.MIN | InputType.MAX | null>(null);
-  const [editMode, setEditMode] = useState<InputType.MIN | InputType.MAX | null>(null);
+  const type: RangeType = (data.values && data.values.length > 2) ? RangeType.FIXED : RangeType.REGULAR;
 
   const rangeLineRef = useRef<HTMLDivElement>(null);
   const minBulletRef = useRef<HTMLDivElement>(null);
@@ -59,8 +56,8 @@ export const CustomRange: React.FC<RangeProps> = ({data, onChange}) => {
     let newValues: StateProps;
     setState(value);
     if (type === RangeType.FIXED) {
-      if (!range.values) return;
-      newValues = RangeService.setBulletsToStep(value, range.values);
+      if (!data.values) return;
+      newValues = RangeService.setBulletsToStep(value, data.values);
     } else {
       newValues = {min: Math.round(value.min), max: Math.round(value.max)};
     }
@@ -76,8 +73,8 @@ export const CustomRange: React.FC<RangeProps> = ({data, onChange}) => {
     }
     switch(input) {
       case InputType.MIN:
-        if (value < range.min) {
-          value = range.min;
+        if (value < data.min) {
+          value = data.min;
         }
         if (value >= values.max) {
           value = values.max - 1;
@@ -86,8 +83,8 @@ export const CustomRange: React.FC<RangeProps> = ({data, onChange}) => {
         onChange({...values, min: value});
         break;
       case InputType.MAX:
-        if (value > range.max) {
-          value = range.max;
+        if (value > data.max) {
+          value = data.max;
         }
         if (value <= values.min) {
           value = values.min + 1;
@@ -118,7 +115,6 @@ export const CustomRange: React.FC<RangeProps> = ({data, onChange}) => {
   const blurInputs = () => {
     minInputRef.current!.blur();
     maxInputRef.current!.blur();
-    setEditMode(null);
   };
 
   const handleKeyboard = (event: React.KeyboardEvent<HTMLInputElement>, input: InputType.MIN | InputType.MAX) => {
@@ -154,7 +150,7 @@ export const CustomRange: React.FC<RangeProps> = ({data, onChange}) => {
     const rangeLineRect = rangeLineRef.current!.getBoundingClientRect();
     const position = (clientX - rangeLineRect.left) / rangeLineRect.width;
     if (position < 0 || position > 1) return;
-    const newValue = range.min + (position * (range.max - range.min));
+    const newValue = data.min + (position * (data.max - data.min));
     if (dragType === InputType.MIN && newValue < values.max - 1) {
       parseValues({...values, min: newValue});
     } else if (dragType === InputType.MAX && newValue > values.min + 1) {
@@ -175,7 +171,7 @@ export const CustomRange: React.FC<RangeProps> = ({data, onChange}) => {
 
   const setBulletPosition = (value: number, ref: any): string => {
     const displacement = isNaN(ref?.current?.clientWidth) ? '.5em' : `${ref.current.clientWidth / 2}px`;
-    return `calc(${((value - range.min) / (range.max - range.min)) * 100}% - ${displacement})`;
+    return `calc(${((value - data.min) / (data.max - data.min)) * 100}% - ${displacement})`;
   }
 
   return (
@@ -189,7 +185,6 @@ export const CustomRange: React.FC<RangeProps> = ({data, onChange}) => {
             value={values.min}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e, InputType.MIN)}
             onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => handleKeyboard(event, InputType.MIN)}
-            onFocus={() => setEditMode(InputType.MIN)}
             onBlur={() => escape()}
             data-testid="minValueInput"
           />
@@ -228,7 +223,6 @@ export const CustomRange: React.FC<RangeProps> = ({data, onChange}) => {
             value={values.max}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e, InputType.MAX)}
             onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => handleKeyboard(event, InputType.MAX)}
-            onFocus={() => setEditMode(InputType.MAX)}
             onBlur={() => escape()}
             data-testid="maxValueInput"
           />
