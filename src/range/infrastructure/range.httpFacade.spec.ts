@@ -5,7 +5,7 @@ import 'isomorphic-fetch';
 import {RangeDto} from "../mappers/range.dto";
 import {RangeType} from "../presentation/range";
 
-const apiUrl = `${process.env.REACT_APP_API_URL}`;
+const apiUrl = `${process.env.REACT_APP_API_URL}/${RangeType.REGULAR}`;
 const facade = new RangeHttpFacade();
 
 const server = setupServer(
@@ -13,7 +13,7 @@ const server = setupServer(
     return res(
       ctx.status(200),
       ctx.set('Content-Type', 'application/json'),
-      ctx.json({min: 1, max: 100})
+      ctx.json({rangeValues: [1, 100]})
     );
   }),
 );
@@ -28,7 +28,7 @@ describe('Range HTTP Facade', () => {
       const range = await facade.getRange(RangeType.REGULAR);
       expect(range).toBeInstanceOf(RangeDto);
       expect(range).toMatchSnapshot();
-      expect(range).toEqual({min: 1, max: 100});
+      expect(range).toEqual({min: 1, max: 100, values: [1, 100]});
     });
 
     it('should request and fail', async () => {
